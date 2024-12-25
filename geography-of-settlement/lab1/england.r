@@ -8,6 +8,8 @@ library(rnaturalearth)
 library(rnaturalearthhires)
 library(dplyr)
 
+setwd('/Users/marcin/Documents/Projects/uam-geo/geography-of-settlement/lab1')
+
 
 # Hardcoded coordinates for South West England
 min_lat <- 49.5  
@@ -32,96 +34,11 @@ updated_counties <- updated_counties %>%
 
 south_west <- bind_rows(other_counties, updated_counties)
 
-counties_df <- data.frame(
-    name = c("Gloucestershire",
-"Dorset",
-"Bournemouth, Christchurch and Poole",
-"Devon",
-"Torbay",
-"Plymouth",
-"Cornwall",
-"Somerset",
-"North Somerset",
-"Bristol",
-"South Gloucestershire",
-"Swindon",
-"Bath and North East Somerset",
-"Wiltshire"),
-city=c(
-"Gloucester",
-"Dorchester",
-"Bournemouth",
-"Exeter",
-"Torquay",
-"Plymouth",
-"Truro",
-"Taunton",
-"Weston-super-Mare",
-"Bristol",
-"Yate",
-"Swindon",
-"Bath",
-"Trowbridge"
-),
-lat=c(
-    51.864445,
-50.711163,
-50.72048,
-50.716667,
-50.46384,
-50.376289,
-50.259998,
-51.01494,
-51.34603,
-51.454514,
-51.54074,
-51.568535,
-51.380001,
-51.319195
-),
-lon=c(
-    -2.244444,
--2.441181,
--1.8795,
--3.533333,
--3.51434,
--4.143841,
--5.051000,
--3.10293,
--2.97665,
--2.587910,
--2.41839,
--1.772232,
--2.360000,
--2.204079
-),
-population=c(
-    318898,
-383274,
-401898,
-1232660,
-139479,
-266862,
-575413,
-576852,
-219145,
-479024,
-294765,
-235657,
-195618,
-515885
-),
-vjust = c(1.7, 1.7, 1.7, 1.7, 1.7, 1.7, 
-                 1.7, 1.7, 1.7, 1.7, 1.7, 1.7, 
-                 1.7, 1.7),
-hjust = c(0.5, 0.5, 0.5, 0.4, 0.5, 0.5, 
-                 0.45, 0.5, 0.6, 0.5, 0.5, 0.5, 
-                 0.5, 0.5)
-)
-
+# Read the cities data from file
+counties_df <- read.csv(file=file.path("data", "en_swe_counties.csv"), header=T)
 cities_sf <- st_as_sf(counties_df, coords = c("lon", "lat"), crs = 4326)  # Współrzędne geograficzne
 
-# Crop map to the specified area
+# Crop the map to the specified area
 bbox <- st_bbox(c(xmin = min_lon, xmax = max_lon, ymin = min_lat, ymax = max_lat), crs = st_crs(regions))
 regions_of_interest <- st_crop(south_west, bbox)
 
@@ -137,8 +54,8 @@ ggplot(data = regions_of_interest) +
     panel.background = element_rect(fill = "white", color = NA),
     axis.line = element_line(color = "black")
   ) +
-  labs(title = "Podział administracyjny Wielkiej Brytanii",
-       subtitle = paste("Obszar: ", min_lat, "-", max_lat, "N, ", min_lon, "-", max_lon, "E"),
+  guides(fill=guide_legend(title="County name")) +
+  labs(title = "Podział administracyjny South West England",
        x = "Długość geograficzna",
        y = "Szerokość geograficzna")
 
