@@ -18,16 +18,16 @@ min_lon <- -6.0
 max_lon <- -1.0
 
 # Load the regions of the United Kingdom
-regions <- ne_states(country = "United Kingdom", returnclass = "sf") # Regiony UK
+regions <- ne_states(country = "United Kingdom", returnclass = "sf")
 
 # Filter South West England
 south_west <- regions %>%
     filter(region %in% c("South West"))
 
 # Merge outdated counties of Bournemouth and Poole into one "Bournemouth, Christchurch and Poole"
-updated_counties <- england_only %>%
+updated_counties <- south_west %>%
     filter(name %in% c("Bournemouth", "Poole"))
-other_counties <- england_only %>%
+other_counties <- south_west %>%
     filter(!name %in% c("Bournemouth", "Poole"))
 updated_counties <- updated_counties %>%
     summarise(name = "Bournemouth, Christchurch and Poole", geometry = st_union(geometry))
@@ -36,7 +36,7 @@ south_west <- bind_rows(other_counties, updated_counties)
 
 # Read the cities data from file
 counties_df <- read.csv(file = file.path("data", "en_swe_counties.csv"), header = T)
-cities_sf <- st_as_sf(counties_df, coords = c("lon", "lat"), crs = 4326) # Współrzędne geograficzne
+cities_sf <- st_as_sf(counties_df, coords = c("lon", "lat"), crs = 4326)
 
 # Crop the map to the specified area
 bbox <- st_bbox(c(xmin = min_lon, xmax = max_lon, ymin = min_lat, ymax = max_lat), crs = st_crs(regions))
@@ -49,14 +49,9 @@ ggplot(data = regions_of_interest) +
     geom_text(data = counties_df, aes(x = lon, y = lat, label = city, vjust = vjust, hjust = hjust), size = 3, fontface = "bold") +
     coord_sf(xlim = c(min_lon, max_lon), ylim = c(min_lat, max_lat)) +
     theme_minimal() +
-    theme(
-        panel.grid = element_blank(),
-        panel.background = element_rect(fill = "white", color = NA),
-        axis.line = element_line(color = "black")
-    ) +
-    guides(fill = guide_legend(title = "County name")) +
+    guides(fill = guide_legend(title = "Jednostki administracyjne")) +
     labs(
-        title = "Podział administracyjny South West England",
-        x = "Długość geograficzna",
-        y = "Szerokość geograficzna"
+        title = "",
+        x = "",
+        y = ""
     )
