@@ -60,3 +60,19 @@ object_size(dane_mc)
 
 # Zapis danych do pliku
 saveRDS(dane_mc, file = "dane_mc.rds")
+
+# Odczyt z pliku
+dane_mc <- readRDS(file = "dane_mc.rds")
+
+# Wyświetlanie histogramu
+hist(dane_mc$tmax_abs)
+
+# Wyświetlanie unikalnych wierszy z kolumn 'station', 'X', 'Y'
+unique(dane_mc[, c("station", "X", "Y")])
+
+# Zamiana nazwy stacji (np. Poznań-Ławica na Poznań)
+dame_mc$station[dane_mc$station == "POZNAŃ-ŁAWICA"] <- "POZNAŃ"
+dane_mc$station[dane_mc$station == "KOŁOBRZEG-DŹWIRZYNO"] <- "KOŁOBRZEG"
+dane_mc$station[dane_mc$station == "WROCŁAW-STRACHOWICE"] <- "WROCŁAW"
+dane_mc$station[dane_mc$station == "WARSZAWA-OKĘCIE"] <- "WARSZAWA"
+dane_mc$station[dane_mc$station == "ŁÓDŹ-LUBLINEK"] <- "ŁÓDŹ"
