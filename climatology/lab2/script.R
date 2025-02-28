@@ -62,17 +62,25 @@ object_size(dane_mc)
 saveRDS(dane_mc, file = "dane_mc.rds")
 
 # Odczyt z pliku
-dane_mc <- readRDS(file = "dane_mc.rds")
+mmp <- readRDS(file = "dane_mc.rds")
 
 # Wyświetlanie histogramu
-hist(dane_mc$tmax_abs)
+hist(mmp$tmax_abs)
 
 # Wyświetlanie unikalnych wierszy z kolumn 'station', 'X', 'Y'
-unique(dane_mc[, c("station", "X", "Y")])
+unique(mmp[, c("station", "X", "Y")])
 
 # Zamiana nazwy stacji (np. Poznań-Ławica na Poznań)
-dame_mc$station[dane_mc$station == "POZNAŃ-ŁAWICA"] <- "POZNAŃ"
-dane_mc$station[dane_mc$station == "KOŁOBRZEG-DŹWIRZYNO"] <- "KOŁOBRZEG"
-dane_mc$station[dane_mc$station == "WROCŁAW-STRACHOWICE"] <- "WROCŁAW"
-dane_mc$station[dane_mc$station == "WARSZAWA-OKĘCIE"] <- "WARSZAWA"
-dane_mc$station[dane_mc$station == "ŁÓDŹ-LUBLINEK"] <- "ŁÓDŹ"
+mmp$station[mmp$station == "POZNAŃ-ŁAWICA"] <- "POZNAŃ"
+mmp$station[mmp$station == "KOŁOBRZEG-DŹWIRZYNO"] <- "KOŁOBRZEG"
+mmp$station[mmp$station == "WROCŁAW-STRACHOWICE"] <- "WROCŁAW"
+mmp$station[mmp$station == "WARSZAWA-OKĘCIE"] <- "WARSZAWA"
+mmp$station[mmp$station == "ŁÓDŹ-LUBLINEK"] <- "ŁÓDŹ"
+
+mmp$X[mmp$station == "BYDGOSZCZ"] <- 18.006 # Uzupełnianie krotki X dla stacji Bydgoszcz
+mmp$Y[mmp$station == "BYDGOSZCZ"] <- 53.106 # Uzupełnianie krotki Y dla stacji Bydgoszcz
+
+mmp$X[mmp$station == "HALA GĄSIENICOWA"] <- 20.0057
+mmp$Y[mmp$station == "HALA GĄSIENICOWA"] <- 49.2441
+
+plot(mmp$tmax_abs)
