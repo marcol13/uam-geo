@@ -117,8 +117,12 @@ dane_mc <- meteo_imgw(
     interval = "monthly", rank = "synop", year = c(1966:2022),
     coords = T
 )
+?meteo_imgw
 head(dane_mc)
+
 colnames(dane_mc)
+
+head(dane_mc)
 # dane_mc <- meteo_imgw(interval="daily", rank="synop", year= c(2024),
 #                        coords=F)
 
@@ -192,7 +196,12 @@ unique(mmp$yy)
 colnames(mmp)
 
 boxplot(mmp$tmax_abs) # w tej formie przydatna jedynie do sprawdzenia
-hist(mmp$t2m_mean_mon)
+hist(mmp$t2m_mean_mon,
+    breaks = 50,
+    main = "Histogram temperatury powietrza",
+    xlab = "Temperatura powietrza [°C]",
+    ylab = "Liczba dni"
+)
 
 # zakresu danych bo mamy tutaj miesi?ce z lat 1966-2018
 # i wszystkie stacje
@@ -280,7 +289,35 @@ poznan_avr_mc <- poznan_mc %>%
         t2sd = sd(t2m_mean_mon)
     )
 
+polska_avr_mc <- mmp %>%
+    group_by(mm) %>%
+    summarise(
+        t2avr = mean(t2m_mean_mon),
+        t2max = max(t2m_mean_mon),
+        t2min = min(t2m_mean_mon),
+        t2sd = sd(t2m_mean_mon)
+    ) 
+
+poznan_avr_mc_opad <- poznan_mc %>%
+    group_by(mm) %>%
+    summarise(
+        p2avr = mean(rr_monthly),
+        p2max = max(rr_monthly),
+        p2min = min(rr_monthly),
+        p2sd = sd(rr_monthly)
+    )
+
+polska_avr_mc_opad <- mmp %>%
+    group_by(mm) %>%
+    summarise(
+        p2avr = mean(rr_monthly),
+        p2max = max(rr_monthly),
+        p2min = min(rr_monthly),
+        p2sd = sd(rr_monthly)
+    )
+
 poznan_avr_mc
+polska_avr_mc
 
 # conflict_prefer("select", "dplyr")
 
@@ -288,6 +325,7 @@ poznan_avr_mc
 
 ## TWORZYMY TABELĘ GOTOWĄ DO PUBLIKACJI/RAPORTU
 round(poznan_avr_mc, 1)
+round(polska_avr_mc, 1)
 
 install.packages("kableExtra", dependencies = T)
 library(kableExtra)
@@ -298,6 +336,36 @@ round(poznan_avr_mc, 1) %>%
         col.names = c("mc", "średnia", "maksimum", "minimum", "sd"),
         align = "c", caption = "Tabela 1. średnia, maksymalna, minimalna oraz odchylenie
         standardowe średniej miesięcznej temperatury powietrza w latach 1966-2018 w Poznaniu"
+    ) %>%
+    kableExtra::column_spec(column = 2:6, width = "4cm", color = "black") %>%
+    kable_styling()
+
+round(poznan_avr_mc_opad, 1) %>%
+    kableExtra::kable("html",
+        row.names = T,
+        col.names = c("mc", "średnia", "maksimum", "minimum", "sd"),
+        align = "c", caption = "Tabela 1. średnia, maksymalna, minimalna oraz odchylenie
+        standardowe opadu miesięcznego w latach 1966-2018 w Poznaniu"
+    ) %>%
+    kableExtra::column_spec(column = 2:6, width = "4cm", color = "black") %>%
+    kable_styling()
+
+round(polska_avr_mc, 1) %>%
+    kableExtra::kable("html",
+        row.names = T,
+        col.names = c("mc", "średnia", "maksimum", "minimum", "sd"),
+        align = "c", caption = "Tabela 1. średnia, maksymalna, minimalna oraz odchylenie
+        standardowe średniej miesięcznej temperatury powietrza w latach 1966-2018 w Polsce"
+    ) %>%
+    kableExtra::column_spec(column = 2:6, width = "4cm", color = "black") %>%
+    kable_styling()
+
+round(polska_avr_mc_opad, 1) %>%
+    kableExtra::kable("html",
+        row.names = T,
+        col.names = c("mc", "średnia", "maksimum", "minimum", "sd"),
+        align = "c", caption = "Tabela 1. średnia, maksymalna, minimalna oraz odchylenie
+        standardowe opadu miesięcznego w latach 1966-2018 w Polsce"
     ) %>%
     kableExtra::column_spec(column = 2:6, width = "4cm", color = "black") %>%
     kable_styling()
@@ -321,7 +389,7 @@ lines(poznan_avr_mc$t2sd, col = "green", lty = 4)
 
 legend(3, -.5,
     legend = c("maksymalna", "średnia", "minimalna", "sd"), box.lty = 1,
-    col = c("red", "black", "blue", "green"), lty = 1:4, cex = .6
+    col = c("red", "black", "blue", "green"), lty = 1:4, cex = 1.2
 )
 
 grid(length(poznan_avr_mc$t2avr), 10)
@@ -333,7 +401,8 @@ plot(poznan_avr_mc$mm, poznan_avr_mc$t2avr,
     type = "l", col = "black", lty = 1,
     xlab = "miesiąc",
     ylab = "Temperatura (\u00B0C)",
-    main = "A"
+    main = "Poznań - średnia, maksymalna i minimalna
+             temperatura powietrza"
 )
 # axis(side=1, at = seq(1,12,1), labels=month.abb, las=2)
 axis(side = 1, at = seq(1, 12, 1), labels = seq(1, 12, 1), cex.axis = 0.8)
@@ -346,15 +415,73 @@ legend(3, -1,
 )
 grid(length(poznan_avr_mc$t2avr), 10)
 
+plot(polska_avr_mc$mm, polska_avr_mc$t2avr,
+    xaxt = "n", ylim = c(-10, 25), # xaxt - bez etykiet x
+    type = "l", col = "black", lty = 1,
+    xlab = "miesiąc",
+    ylab = "Temperatura (\u00B0C)",
+    main = "Polska - średnia, maksymalna i minimalna
+             temperatura powietrza"
+)
+# axis(side=1, at = seq(1,12,1), labels=month.abb, las=2)
+axis(side = 1, at = seq(1, 12, 1), labels = seq(1, 12, 1), cex.axis = 0.8)
+lines(polska_avr_mc$t2max, col = "red", lty = 2)
+lines(polska_avr_mc$t2min, col = "blue", lty = 3)
+lines(polska_avr_mc$t2sd, col = "green", lty = 4)
+legend(3, -1,
+    legend = c("maksymalna", "średnia", "minimalna", "sd"), box.lty = 0,
+    col = c("red", "black", "blue", "green"), lty = 1:4, cex = 0.7
+)
+grid(length(polska_avr_mc$t2avr), 10)
+
+plot(poznan_avr_mc_opad$mm, poznan_avr_mc_opad$p2avr,
+    xaxt = "n", ylim = c(0, 200), # xaxt - bez etykiet x
+    type = "l", col = "black", lty = 1,
+    xlab = "miesiąc",
+    ylab = "Opad (mm)",
+    main = "Poznań - średni, maksymalny i minimalny opad"
+)
+# axis(side=1, at = seq(1,12,1), labels=month.abb, las=2)
+axis(side = 1, at = seq(1, 12, 1), labels = seq(1, 12, 1), cex.axis = 0.8)
+lines(poznan_avr_mc_opad$p2max, col = "red", lty = 2)
+lines(poznan_avr_mc_opad$p2min, col = "blue", lty = 3)
+lines(poznan_avr_mc_opad$p2sd, col = "green", lty = 4)
+legend(3, 150,
+    legend = c("maksymalny", "średni", "minimalny", "sd"), box.lty = 0,
+    col = c("red", "black", "blue", "green"), lty = 1:4, cex = 0.7
+)
+grid(length(poznan_avr_mc_opad$p2avr), 10)
+
+plot(polska_avr_mc_opad$mm, polska_avr_mc_opad$p2avr,
+    xaxt = "n", ylim = c(0, 700), # xaxt - bez etykiet x
+    type = "l", col = "black", lty = 1,
+    xlab = "miesiąc",
+    ylab = "Opad (mm)",
+    main = "Polska - średni, maksymalny i minimalny opad"
+)
+# axis(side=1, at = seq(1,12,1), labels=month.abb, las=2)
+axis(side = 1, at = seq(1, 12, 1), labels = seq(1, 12, 1), cex.axis = 0.8)
+lines(polska_avr_mc_opad$p2max, col = "red", lty = 2)
+lines(polska_avr_mc_opad$p2min, col = "blue", lty = 3)
+lines(polska_avr_mc_opad$p2sd, col = "green", lty = 4)
+legend(3, 150,
+    legend = c("maksymalny", "średni", "minimalny", "sd"), box.lty = 0,
+    col = c("red", "black", "blue", "green"), lty = 1:4, cex = 0.7
+)
+grid(length(polska_avr_mc_opad$p2avr), 10)
+
+
+
+dev.off()
 # mo?na to lepiej pokaza? boxpotem
 head(poznan_mc)
 
 mmp
 
 boxplot(poznan_mc$t2m_mean_mon ~ poznan_mc$mm,
-    xlab = "month", xaxt = "n", las = 1,
-    main = "b",
-    ylab = expression("Temperature (" * ~ degree * C * ")")
+    xlab = "Miesiące", xaxt = "n", las = 1,
+    main = "Poznań - średnie miesięczne temperatury powietrza",
+    ylab = expression("Temperatura (" * ~ degree * C * ")")
 )
 
 
@@ -490,8 +617,8 @@ plot(wiosna$yy,
     type = "l",
     col  = "blue",
     xlab = "Rok",
-    ylab = "Temperatura powietrza [?C]",
-    main = "Pozna? - ?rednia roczna temperatura powietrza (1966 - 2020)"
+    ylab = "Temperatura powietrza [°C]",
+    main = "Poznań - średnia roczna temperatura powietrza (1966 - 2020)"
 )
 
 
@@ -564,7 +691,9 @@ plot(zima$yy, zima$t2)
 #################################
 ### MAPY
 
-# install.packages('akima')
+install.packages('colorRamps', dependencies = T)
+install.packages('colorspace', dependencies = T)
+install.packages('mapview', dependencies = T)
 
 library(akima)
 library(raster)
@@ -630,11 +759,49 @@ z <- na.omit(mmp_styczen$t2)
 
 ## spline interpolation
 
-
+install.packages("akima", dependencies = T)
+library(akima)
 akima.spl <- interp(x, y, z,
     linear = F, xo = seq(14, 24.3, .01),
     yo = seq(49, 54.9, .01), extrap = T, duplicate = "mean"
 )
+
+
+
+# POBIERAM GRANIC? POLSKI DO KT?REJ B?D? EKSTRAPOLOWA?
+
+library(mapview)
+library(geodaData)
+library(geodata)
+library(raster)
+
+granica <- geodata::gadm('GADM', country='POL', level=0)
+granica <- as(granica, "Spatial")
+
+image.plot(akima.spl, breaks=breaks, col=colors)
+map("world", add=T)
+
+plot(granica, add=T)
+map(pol, col="red", fill=TRUE, add=TRUE)
+
+
+# Mask and crop
+library()
+
+x_masked <- mask(x, granica)
+x_masked_cropped <- crop(x_masked, granica)
+
+r       <- raster(akima.spl)
+plot(r)
+r.m     <- mask(r, granica)
+plot(r.m, col= matlab.like(45), breaks=seq(-10,25,1))
+plot(granica, add=T)
+
+
+r.m
+siatka_n <- raster(granica) # zamieniam na raster
+str(siatka_n)
+siatka_n
 
 head(akima.spl, 5)
 # RYSOWANIE MAPY
