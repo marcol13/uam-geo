@@ -1,11 +1,11 @@
 # Komentarze robimy za pomocą '#'
 
-install.packages("raster", dependencies=T) # Instalujemy pakiet 'raster'
-install.packages("dplyr", dependencies=T)
-install.packages("RCurl", dependencies=T)
-install.packages("XML", dependencies=T)
-install.packages("remotes", dependencies=T)
-install.packages("climate", dependencies=T)
+install.packages("raster", dependencies = T) # Instalujemy pakiet 'raster'
+install.packages("dplyr", dependencies = T)
+install.packages("RCurl", dependencies = T)
+install.packages("XML", dependencies = T)
+install.packages("remotes", dependencies = T)
+install.packages("climate", dependencies = T)
 
 # install_github('bczernecki/climate' # Instalujemy pakiet z githuba
 
@@ -17,7 +17,7 @@ library(remotes)
 library(climate)
 
 # Ćwiczenia 1
-setwd('/Users/marcin/Documents/Projects/UAM/klimatologia/cw1') # Ustawiamy ścieżkę do folderu, w którym znajduje się skrypt
+setwd("/Users/marcin/Documents/Projects/UAM/klimatologia/cw1") # Ustawiamy ścieżkę do folderu, w którym znajduje się skrypt
 getwd() # Sprawdzamy, czy ścieżka została ustawiona poprawnie
 dir() # Wyświetlamy zawartość folderu
 
@@ -28,9 +28,9 @@ dir() # Wyświetlamy zawartość folderu
 imgw_meteo_abbrev # Metadane meteorologiczne
 imgw_meteo_stations # Dane meteorologiczne
 
-poland <- stations_ogimet(country="Poland", add_map=T) # ogimet - źródło danych (sprawdzone)
-poland[,2] # Wyświetlamy drugą kolumnę z danych
-poland[1:5,] # Wyświetlamy pierwsze 5 wierszy
+poland <- stations_ogimet(country = "Poland", add_map = T) # ogimet - źródło danych (sprawdzone)
+poland[, 2] # Wyświetlamy drugą kolumnę z danych
+poland[1:5, ] # Wyświetlamy pierwsze 5 wierszy
 poland
 
 dim(poland) # Rozmiar danych

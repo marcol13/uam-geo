@@ -26,21 +26,21 @@ saveRDS(poznan_mc, file = "poznan_mc.rds")
 View(poznan_mc) # Wyświetlenie danych w tabeli
 
 poznan_avr_mc <- poznan_mc %>%
-    group_by(mm) %>%
-    summarise(
-        t2avr = mean(t2m_mean_mon),
-        t2min = min(t2m_mean_mon),
-        t2max = max(t2m_mean_mon),
-        t2std = sd(t2m_mean_mon)
-    )
+  group_by(mm) %>%
+  summarise(
+    t2avr = mean(t2m_mean_mon),
+    t2min = min(t2m_mean_mon),
+    t2max = max(t2m_mean_mon),
+    t2std = sd(t2m_mean_mon)
+  )
 poznan_avr_mc
 
 plot(poznan_avr_mc$mm, poznan_avr_mc$t2avr,
-    ylim = c(-10, 28), xlim = c(1, 12),
-    type = "l",
-    xlab = "miesiąc",
-    ylab = "Temperatura (\u00B0C)",
-    main = "Poznań"
+  ylim = c(-10, 28), xlim = c(1, 12),
+  type = "l",
+  xlab = "miesiąc",
+  ylab = "Temperatura (\u00B0C)",
+  main = "Poznań"
 )
 
 colnames(mmp)
