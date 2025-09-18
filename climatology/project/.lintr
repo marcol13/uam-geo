@@ -1,0 +1,9 @@
+exclusions: list()
+encoding: "UTF-8"
+linters: linters_with_defaults(
+  line_length_linter(120),
+  object_name_linter(styles = c("snake_case", "camelCase")),
+  object_usage_linter(),
+  quotes_linter(delimiter = "\""),
+  trailing_whitespace_linter(),
+  indentation_linter(indent = 2))

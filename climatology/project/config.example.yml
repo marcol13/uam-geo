@@ -1,0 +1,4 @@
+default:
+  data_path: path
+  pl_meteo_filename: filename
+  pzn_meteo_filename: filename

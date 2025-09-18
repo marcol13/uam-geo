@@ -1,0 +1,388 @@
+# ⛅︎ Changes in the climate of Poznań against the background of changes in Poland
+
+## Initial project setup
+
+```{R}
+source("src/init.R")
+```
+
+### Load packages
+```{R}
+load_packages("notebook")
+# Uncomment the following line to load all packages if you want to develop the project
+# load_packages("dev")
+```
+
+### Load config
+
+```{R}
+config <- config::get()
+# Check if the config file is loaded correctly
+validate_config(config)
+```
+
+## Data preprocessing
+
+```{R}
+source("src/data.R")
+
+meteo_data_columns <- c("")
+```
+
+### Get data for Poland
+
+```{R}
+pl_filename <- file.path(config$data_path, config$pl_meteo_filename)
+pl_meteo_data <- get_pl_raw_data(pl_filename)
+save_into_file(pl_meteo_data, config$data_path, config$pl_meteo_filename)
+pl_meteo_data <- get_columns(pl_meteo_data, DF_DEFAULT_COLUMNS)
+```
+
+```{R}
+head(pl_meteo_data)
+```
+
+### Get data for Poznań
+
+```{R}
+pzn_filename <- file.path(config$data_path, config$pzn_meteo_filename)
+pzn_meteo_data <- get_pzn_raw_data(pzn_filename)
+save_into_file(pzn_meteo_data, config$data_path, config$pzn_meteo_filename)
+pzn_meteo_data <- get_columns(pzn_meteo_data, DF_DEFAULT_COLUMNS)
+```
+
+```{R}
+head(pzn_meteo_data)
+```
+
+
+## Preprocessing
+```{R}
+source("src/preprocessing.R")
+```
+
+Poznań historical weather measurements starts in 1966, so all earlier data in PL data frame will be removed. 
+
+```{R}
+pl_meteo_data <- get_measurements_from_year(pl_meteo_data, 1966)
+```
+
+Observations from PL data:
+1. Some of the stations haven't provide lat and long coordinates. Because this is not crucial for the analysis, we will either not delete these data nor fill them with any artificial values.
+2. Several stations have no data for columns such as `ws_mean_mon` (mean wind speed in month [m/s]), `slp_mean_mon` (mean sea level pressure in month [hPa]), `press_mean_mon` (mean atmospheric pressure in month [hPa]), `rh_mean_mon` (mean relative humidity in month [%]), `vapor_press_mean_mon` (mean vapor pressure in month [hPa]), `cloud_mean_mon` (mean cloud cover in month [octas]). We decided to delete these columns.
+3. Not every station has data for all years (from 1966). We deleted data from these stations. Stations:
+- Hala Gąsienicowa
+- Krosno
+- Zgorzelec
+- Kozienice
+- Piła
+- Żarnowiec
+- Gdańsk-port północny
+- Gdańsk-Świbno
+4. We assume, that all of the measurements are correct and we will not remove any outliers.
+
+```{R}
+## Getting null values for PL
+write.csv(pl_meteo_data %>%
+  group_by(id) %>%
+  summarise(across(everything(), ~ sum(is.na(.)), .names = "na_{.col}")), "null_values_count_per_id.csv")
+```
+
+```{R}
+## Getting ids of newer stations that haven't data from 1966
+# newer_station_ids <- pl_meteo_data %>%
+#   group_by(id) %>%
+#   summarize(min_year = min(yy, na.rm = TRUE)) %>%
+#   filter(min_year > 1966) %>%
+#   pull(id)
+# pl_meteo_data <- pl_meteo_data %>% filter(!id %in% newer_station_ids)
+pl_meteo_data <- filter_newer_stations(pl_meteo_data, 1966)
+```
+
+
+## Plotting data
+
+### Station map
+```{R}
+unique_pl_stations <- unique(pl_meteo_data$id)
+unique_pl_stations_coords <- pl_meteo_data %>%
+  filter(id %in% unique_pl_stations) %>%
+  group_by(id) %>%
+  summarise(lon = first(X), lat = first(Y)) %>%
+  arrange(id)
+
+length(unique_pl_stations_coords$id)
+
+poland <- ne_countries(scale = "medium", country = "Poland", returnclass = "sf")
+
+ggplot() +
+  geom_sf(data = poland, fill = NA, color = "black") +
+  geom_point(data = unique_pl_stations_coords, aes(x = lon, y = lat), color = "red", size = 3) +
+  # geom_text(data = unique_pl_stations_coords, aes(x = lon, y = lat, label = id), vjust = -1) +
+  coord_sf(xlim = c(14, 24), ylim = c(49, 55)) +
+  labs(x = "Długość", y = "Szerokość") +
+  theme_minimal()
+```
+
+
+### Temperature maps
+```
+avg_pl_t2m_mean_mon <- pzn_meteo_data %>%
+  group_by(yy, mm) %>%
+  summarise(avg_t2m = mean(t2m_mean_mon, na.rm = TRUE),
+            lon = first(X),
+            lat = first(Y))
+
+avg_pl_t2m_mean_mon
+
+avg_pl_t2m_mean_mon$date <- as.Date(paste(avg_pl_t2m_mean_mon$yy, avg_pl_t2m_mean_mon$mm, "01", sep = "-"))
+
+ggplot(avg_pl_t2m_mean_mon, aes(x = date, y = avg_t2m)) +
+  geom_line() +
+  geom_point() +
+  labs(x = "Data (rok-miesiąc)", y = "Średnia temperatura", title = "Miesięczna średnia temperatura") +
+  theme_minimal()
+
+df_yearly <- avg_pl_t2m_mean_mon %>%
+  group_by(yy) %>%
+  summarise(avg_t2m_year = mean(avg_t2m, na.rm=TRUE))
+
+ggplot(df_yearly, aes(x = factor(yy), y = avg_t2m_year)) +
+  geom_line() +
+  geom_point() +
+  labs(x = "Rok", y = "Średnia temperatura [°C]", title = "Roczna średnia temperatura") +
+  theme_minimal()
+
+  breaks_20 <- seq(min(df_yearly$yy), max(df_yearly$yy), by = 20)
+
+ggplot(df_yearly, aes(x = yy, y = avg_t2m_year)) +
+  geom_line() +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "red", linetype = "dashed") +
+  scale_x_continuous(breaks = breaks_20) +
+  labs(x = "Rok", y = "Średnia temperatura [°C]", title = "Roczna średnia temperatura dla Poznania") +
+  theme_minimal()
+
+plot(
+  avg_pl_t2m_mean_mon$yy + avg_pl_t2m_mean_mon$mm / 12,
+  avg_pl_t2m_mean_mon$avg_t2m,
+  aes(x = lon, y = lat, fill = avg_t2m)
+)
+```
+
+
+### Pericipation charts
+```
+pl_opady_roczne <- pl_meteo_data %>%
+  group_by(yy) %>%
+  summarise(rr_year = mean(rr_monthly, na.rm = TRUE)*12, .groups = "drop") # lub sum(rr_monthly) jeśli suma
+
+pzn_opady_roczne <- pzn_meteo_data %>%
+  group_by(yy) %>%
+  summarise(rr_year = sum(rr_monthly, na.rm = TRUE), .groups = "drop")
+
+opady_roczne <- left_join(pl_opady_roczne, pzn_opady_roczne, by = "yy", suffix = c("_pl", "_pzn"))
+
+ggplot(opady_roczne, aes(x = yy)) +
+  geom_line(aes(y = rr_year_pl, color = "Polska")) +
+  geom_line(aes(y = rr_year_pzn, color = "Poznań")) +
+  labs(title = "Sumy roczne opadów – Poznań vs Polska",
+       x = "Rok", y = "Sumy opadów [mm]", color = "Region") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 24, face = "bold"),
+    axis.title.x = element_text(size = 20, face = "bold"),
+    axis.title.y = element_text(size = 20, face = "bold"),
+    axis.text = element_text(size = 16),
+    legend.text = element_text(size = 18),
+    legend.title = element_text(size = 20, face = "bold"),
+    legend.key.size = unit(2, "cm"),
+    legend.position = "bottom" # zmień na "bottom" poniżej
+  )
+
+
+pl_opady_dekady <- pl_meteo_data %>%
+  mutate(decade = paste0((yy %/% 10)*10, "s"))
+
+ggplot(pl_opady_dekady, aes(x = decade, y = rr_monthly)) +
+  geom_boxplot(aes(fill = decade)) +
+  labs(title = "Rozkład miesięcznych opadów w dekadach – Polska",
+       x = "Dekada", y = "Opady miesięczne [mm]") +
+  theme_minimal()
+
+
+pzn_meteo_data <- pzn_meteo_data %>%
+  arrange(yy, mm) %>%
+  mutate(rr_monthly_roll = zoo::rollmean(rr_monthly, k = 12, fill = NA, align = "right"))
+
+ggplot(pzn_meteo_data, aes(x = as.Date(paste(yy, mm, "01", sep = "-")), y = rr_monthly_roll)) +
+  geom_line(color = "blue") +
+  labs(title = "Średnia ruchoma 12-miesięczna opadów w Poznaniu",
+       x = "Data", y = "Opady [mm]") +
+  theme_minimal()
+
+ pzn_meteo_data %>%
+  mutate(decade = paste0((yy %/% 10)*10, "s")) %>%
+  ggplot(aes(x = mm, y = rr_monthly)) +
+  geom_line(size = 1.2, color = "royalblue") +
+  facet_wrap(~ decade, ncol = 2, scales = "free_x") + # ncol: liczba kolumn, scales: "free_x" nie jest konieczne, ale czasem pomaga
+  scale_x_continuous(
+    breaks = seq(1, 12, 3),
+    labels = c("I", "IV", "VII", "X")
+  ) +
+  labs(
+    title = "Opady w Poznaniu w różnych dekadach",
+    x = "Miesiąc",
+    y = "Opady [mm]"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 22, face = "bold"),
+    axis.title.x = element_text(size = 18, face = "bold"),
+    axis.title.y = element_text(size = 18, face = "bold"),
+    axis.text = element_text(size = 14),
+    axis.text.x = element_text(size = 14, color = "black"), # WYRAŹNE etykiety na osi X
+    axis.ticks.x = element_line(),
+    panel.spacing = unit(2, "cm"),
+    strip.placement = "outside",
+    strip.background = element_blank()
+  )
+```
+  
+### Insolation chart
+```
+pl_insolation_year <- pl_meteo_data %>%
+  group_by(yy) %>%
+  summarise(insolation_sum = mean(insolation_monthly, na.rm = TRUE) * 12, .groups = "drop") # średnia dla Polski * 12 miesięcy
+
+pzn_insolation_year <- pzn_meteo_data %>%
+  group_by(yy) %>%
+  summarise(insolation_sum = sum(insolation_monthly, na.rm = TRUE), .groups = "drop") # suma dla Poznania
+
+insolation_long <- bind_rows(
+  pl_insolation_year %>% mutate(Region = "Polska"),
+  pzn_insolation_year %>% mutate(Region = "Poznań")
+)
+
+ggplot(insolation_long, aes(x = yy, y = insolation_sum, color = Region)) +
+  geom_line(size = 1.5) +
+  # Trendy liniowe:
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed", size = 1.2) +
+  labs(
+    title = "Roczne sumy usłonecznienia – Poznań vs Polska z linią trendu",
+    x = "Rok",
+    y = "Usłonecznienie roczne [h]",
+    color = "Region"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 22, face = "bold"),
+    axis.title.x = element_text(size = 18, face = "bold"),
+    axis.title.y = element_text(size = 18, face = "bold"),
+    axis.text = element_text(size = 14),
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 18, face = "bold"),
+    legend.key.size = unit(2, "cm"),
+    legend.position = "bottom"
+  )
+```
+
+### Windy days
+```
+pl_wiatr_year <- pl_meteo_data %>%
+  group_by(yy) %>%
+  summarise(ws_10ms_days = mean(ws_10ms_days, na.rm = TRUE) * 12, .groups = "drop") # średnia miesięczna * 12
+
+pzn_wiatr_year <- pzn_meteo_data %>%
+  group_by(yy) %>%
+  summarise(ws_10ms_days = sum(ws_10ms_days, na.rm = TRUE), .groups = "drop") # suma miesięczna
+
+wiatr_long <- bind_rows(
+  pl_wiatr_year %>% mutate(Region = "Polska"),
+  pzn_wiatr_year %>% mutate(Region = "Poznań")
+)
+
+ggplot(wiatr_long, aes(x = yy, y = ws_10ms_days, color = Region)) +
+  geom_line(size = 1.5) +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed", size = 1.2) + # linie trendu
+  labs(
+    title = "Średnia liczba dni z wiatrem >= 10 m/s – Poznań vs Polska",
+    x = "Rok",
+    y = "Liczba dni",
+    color = "Region"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 22, face = "bold"),
+    axis.title.x = element_text(size = 18, face = "bold"),
+    axis.title.y = element_text(size = 18, face = "bold"),
+    axis.text = element_text(size = 14),
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 18, face = "bold"),
+    legend.key.size = unit(2, "cm"),
+    legend.position = "bottom"
+  )
+```
+
+### Extreme phenomenon
+```
+extreme_vars <- c("hail_days", "glaze_days", "rime_days")
+extreme_labels <- c("Grad", "Gołoledź", "Szadź")
+
+pl_long <- lapply(seq_along(extreme_vars), function(i) {
+  pl_meteo_data %>%
+    group_by(yy) %>%
+    summarise(days = mean(.data[[extreme_vars[i]]], na.rm = TRUE) * 12, .groups = "drop") %>%
+    mutate(Region = "Polska", Zjawisko = extreme_labels[i])
+}) %>% bind_rows()
+
+pzn_long <- lapply(seq_along(extreme_vars), function(i) {
+  pzn_meteo_data %>%
+    group_by(yy) %>%
+    summarise(days = sum(.data[[extreme_vars[i]]], na.rm = TRUE), .groups = "drop") %>%
+    mutate(Region = "Poznań", Zjawisko = extreme_labels[i])
+}) %>% bind_rows()
+
+extreme_all <- bind_rows(pl_long, pzn_long)
+
+ggplot(extreme_all, aes(x = yy, y = days, color = Region)) +
+  geom_line(size = 1.3) +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed", size = 1) +
+  facet_wrap(~ Zjawisko, scales = "free_y", ncol = 1) +
+  labs(
+    title = "Roczna liczba dni z gradem, gołoledzią i szadzią – Poznań vs Polska",
+    x = "Rok",
+    y = "Liczba dni",
+    color = "Region"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 20, face = "bold"),
+    axis.title.x = element_text(size = 16, face = "bold"),
+    axis.title.y = element_text(size = 16, face = "bold"),
+    axis.text = element_text(size = 12),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 16, face = "bold"),
+    legend.key.size = unit(1.5, "cm"),
+    legend.position = "bottom",
+    strip.text = element_text(size = 16, face = "bold")
+  )
+```
+
+## Clustering
+
+### Standardize and normalize data
+
+```{R}
+source("src/standardize.R")
+
+
+```{R}
+# pl_meteo_data[pl_meteo_data$id == "353170240"]
+pzn_meteo_data %>%
+  group_by(id) %>%
+  summarise(across(everything(), 
+                   ~ mean(is.na(.)) * 100, 
+                   .names = "na_pct_{.col}")) %>%
+  write.csv("my_dataframe_output3.csv", row.names = FALSE)
+```

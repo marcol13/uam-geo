@@ -1,0 +1,24 @@
+# .Rprofile — Project-level config for styling R code to match lintr
+
+options(
+  # Use a custom tidyverse-based style
+  styler.style = function(...) {
+    styler::tidyverse_style(
+      scope = "tokens",
+      indent_by = 2, # Matches indentation_linter(indent = 2)
+      strict = TRUE, # Enforces consistent spacing and line breaks
+      start_comments_with_one_space = TRUE,
+      reindention = styler::specify_reindention(
+        regex_pattern = NULL,
+        indention = 0
+      ),
+      ...
+    )
+  },
+
+  # max line length is handled by lintr, but you could enforce soft wraps here
+  width = 120,
+
+  # default encoding
+  encoding = "UTF-8"
+)
